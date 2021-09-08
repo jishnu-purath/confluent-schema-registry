@@ -1,11 +1,12 @@
-import forge, { Client, Authorization } from 'mappersmith'
-import RetryMiddleware, { RetryMiddlewareOptions } from 'mappersmith/middleware/retry/v2'
-import BasicAuthMiddleware from 'mappersmith/middleware/basic-auth'
 import { ForSchemaOptions } from 'avsc'
-
+import forge, { Authorization, Client } from 'mappersmith'
+import BasicAuthMiddleware from 'mappersmith/middleware/basic-auth'
+import RetryMiddleware, { RetryMiddlewareOptions } from 'mappersmith/middleware/retry/v2'
+import TimeoutMiddleware from 'mappersmith/middleware/timeout'
 import { DEFAULT_API_CLIENT_ID } from '../constants'
-import errorMiddleware from './middleware/errorMiddleware'
 import confluentEncoder from './middleware/confluentEncoderMiddleware'
+import errorMiddleware from './middleware/errorMiddleware'
+import { getLoggerMiddleware } from './middleware/loggerMiddleware'
 
 const DEFAULT_RETRY = {
   maxRetryTimeInSecs: 5,
@@ -20,6 +21,7 @@ export interface SchemaRegistryAPIClientArgs {
   auth?: Authorization
   clientId?: string
   retry?: Partial<RetryMiddlewareOptions>
+  logger?: any
 }
 
 export interface SchemaRegistryAPIClientOptions {
@@ -48,16 +50,19 @@ export default ({
   clientId,
   host,
   retry = {},
-}: SchemaRegistryAPIClientArgs): SchemaRegistryAPIClient =>
-  forge({
+  logger = {},
+}: SchemaRegistryAPIClientArgs): SchemaRegistryAPIClient => {
+  return forge({
     clientId: clientId || DEFAULT_API_CLIENT_ID,
     ignoreGlobalMiddleware: true,
     host,
     middleware: [
       confluentEncoder,
+      TimeoutMiddleware(60000),
       RetryMiddleware(Object.assign(DEFAULT_RETRY, retry)),
       errorMiddleware,
       ...(auth ? [BasicAuthMiddleware(auth)] : []),
+      ...(logger.info && logger.error ? [getLoggerMiddleware(logger)] : []),
     ],
     resources: {
       Schema: {
@@ -105,3 +110,4 @@ export default ({
       },
     },
   })
+}

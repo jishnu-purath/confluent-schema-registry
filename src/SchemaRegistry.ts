@@ -38,10 +38,10 @@ export default class SchemaRegistry {
   public cache: Cache
 
   constructor(
-    { auth, clientId, host, retry }: SchemaRegistryAPIClientArgs,
+    { auth, clientId, host, retry, logger }: SchemaRegistryAPIClientArgs,
     options?: SchemaRegistryAPIClientOptions,
   ) {
-    this.api = API({ auth, clientId, host, retry })
+    this.api = API({ auth, clientId, host, retry, logger })
     this.cache = new Cache(options?.forSchemaOptions)
   }
 
